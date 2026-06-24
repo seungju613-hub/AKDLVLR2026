@@ -216,13 +216,13 @@ window.ROSTER = [
   { id:"lisa_bp",   name:"리사", group:"BLACKPINK", gender:"female", birthMonth:3, birthDay:27, bio:"", photo:"", startVotes:0 },
 
   /* ───────── 방탄소년단 (보이즈) · 특이사항 없음 ───────── */
-  { id:"rm_bts",      name:"RM",   group:"방탄소년단", gender:"male", birthMonth:9,  birthDay:12, bio:"", photo:"", startVotes:0 },
+  { id:"rm_bts",      name:"RM",   group:"방탄소년단", gender:"male", birthMonth:9,  birthDay:12, bio:"", photo:"images/rm_bts.jpg", startVotes:0 },
   { id:"jin_bts",     name:"진",   group:"방탄소년단", gender:"male", birthMonth:12, birthDay:4,  bio:"", photo:"", startVotes:0 },
   { id:"suga_bts",    name:"슈가", group:"방탄소년단", gender:"male", birthMonth:3,  birthDay:9,  bio:"", photo:"", startVotes:0 },
   { id:"jhope_bts",   name:"제이홉",group:"방탄소년단", gender:"male", birthMonth:2,  birthDay:18, bio:"", photo:"", startVotes:0 },
-  { id:"jimin_bts",   name:"지민", group:"방탄소년단", gender:"male", birthMonth:10, birthDay:13, bio:"", photo:"", startVotes:0 },
+  { id:"jimin_bts",   name:"지민", group:"방탄소년단", gender:"male", birthMonth:10, birthDay:13, bio:"", photo:"images/jimin_bts.jpg", startVotes:0 },
   { id:"v_bts",       name:"뷔",   group:"방탄소년단", gender:"male", birthMonth:12, birthDay:30, bio:"", photo:"", startVotes:0 },
-  { id:"jungkook_bts",name:"정국", group:"방탄소년단", gender:"male", birthMonth:9,  birthDay:1,  bio:"", photo:"", startVotes:0 },
+  { id:"jungkook_bts",name:"정국", group:"방탄소년단", gender:"male", birthMonth:9,  birthDay:1,  bio:"", photo:"images/jungkook_bts.jpg", startVotes:0 },
 
   /* ───────── BABYMONSTER (걸즈) · 생일 확인 필요 ───────── */
   { id:"ruka_bm",     name:"루카",   group:"BABYMONSTER", gender:"female", birthMonth:3, birthDay:20, bio:"", photo:"", startVotes:0 },
