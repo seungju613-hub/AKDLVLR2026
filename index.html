@@ -68,18 +68,18 @@
   .pack .precbadge{position:absolute;top:-8px;left:12px;background:var(--grad);color:#fff;font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:99px;}
 
   /* round tabs */
-  .tabs{display:flex;gap:7px;margin:0 2px;}
+  .tabs{display:flex;gap:7px;margin:9px 2px 0;}
   .tab{flex:1;border:1px solid var(--line);background:var(--bg-soft);color:var(--mute);border-radius:13px;padding:9px 4px;font-weight:800;font-size:13px;cursor:pointer;text-align:center;transition:.16s;}
   .tab .sub{display:block;font-size:9.5px;font-weight:600;margin-top:2px;}
   .tab.active{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 18px -8px rgba(255,77,141,.6);}
 
   /* boys/girls toggle */
-  .gtoggle{display:flex;gap:6px;margin:10px 2px 0;background:var(--bg-soft);border:1px solid var(--line);border-radius:13px;padding:4px;}
+  .gtoggle{display:flex;gap:6px;margin:9px 2px 0;background:var(--bg-soft);border:1px solid var(--line);border-radius:13px;padding:4px;}
   .gbtn{flex:1;border:none;background:transparent;color:var(--mute);border-radius:10px;padding:9px 4px;font-family:'Noto Sans KR';font-weight:800;font-size:13px;cursor:pointer;transition:.15s;}
   .gbtn.on{background:var(--grad);color:#fff;box-shadow:0 6px 14px -6px rgba(255,77,141,.7);}
 
   .round-head{margin:11px 2px 0;background:var(--bg-soft);border:1px solid var(--line);border-radius:16px;padding:12px 13px;}
-  .stage-tabs{display:flex;flex-direction:column;gap:8px;margin:12px 2px 0;}
+  .stage-tabs{display:flex;flex-direction:column;gap:9px;margin:12px 2px 0;}
   .stage-tab{width:100%;border:1.5px solid var(--line);background:var(--bg);border-radius:15px;cursor:pointer;text-align:center;font-family:'Noto Sans KR';display:flex;flex-direction:column;align-items:center;justify-content:center;}
   .stage-tab .st-t{font-family:'Black Han Sans';color:var(--mute);line-height:1.1;}
   .stage-tab .st-s{font-size:11px;color:var(--mute-2);font-weight:600;margin-top:4px;}
@@ -87,10 +87,10 @@
   .stage-tab.big .st-t{font-size:22px;}
   .stage-tab.slim{padding:11px 8px;}
   .stage-tab.slim .st-t{font-size:16px;}
-  .stage-tab.on{border-color:transparent;background:var(--grad);box-shadow:0 8px 20px -6px rgba(255,77,141,.45);}
+  .stage-tab.on{border-color:transparent;background:var(--grad);box-shadow:0 5px 13px -7px rgba(255,77,141,.55);}
   .stage-tab.on .st-t,.stage-tab.on .st-s{color:#fff;}
-  .rh-cap{font-size:11px;font-weight:700;color:var(--mute);margin-bottom:8px;}
-  .rh-cap span{color:var(--mute-2);font-weight:500;}
+  .rh-cap{font-size:11px;font-weight:700;color:var(--mute);margin-bottom:4px;}
+  .rh-note{font-size:10.5px;color:var(--mute-2);font-weight:500;margin-bottom:9px;line-height:1.5;}
   .row.adv{background:linear-gradient(90deg,#fff7e9,var(--surface) 55%);}
   .row.adv .rank{color:#e29a2b;}
   .status-row{display:flex;align-items:center;gap:8px;}
@@ -264,6 +264,19 @@
   .mebias{display:flex;align-items:center;gap:7px;justify-content:flex-end;}
   .mebias .mb-thumb{width:26px;height:26px;border-radius:50%;background-size:cover;background-position:center;flex:none;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:800;position:relative;overflow:hidden;}
   .mebias small{color:var(--mute);font-weight:600;}
+
+  /* 팬 제출 사진 */
+  .fan-photos{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px;}
+  .fp-head{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:9px;}
+  .fp-head span{font-size:10.5px;font-weight:600;color:var(--mute);margin-left:4px;}
+  .fp-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+  .fp-add{flex:none;width:58px;height:58px;border-radius:12px;border:1.5px dashed var(--pink-2);background:var(--bg-soft);color:var(--pink);font-size:20px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}
+  .fp-add span{font-size:8.5px;font-weight:700;margin-top:2px;}
+  .fp-thumb{flex:none;width:58px;height:58px;border-radius:12px;overflow:hidden;border:2px solid transparent;background:none;padding:0;cursor:pointer;}
+  .fp-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .fp-thumb.on{border-color:var(--pink);}
+  .fp-note{font-size:10.5px;color:var(--mute);line-height:1.6;margin-top:10px;}
+  .fp-note b{color:var(--pink-deep);}
 
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
@@ -527,6 +540,7 @@
   let balance=0, stage='final', active='9', activeGender='male', screen='rank';
   let myBias=null, biasPhoto=null, nickname='아미보라', attClaimed=false;
   const myVotes={};
+  const fanPhotos={};  // 팬 제출 사진 (데모: 메모리 보관) { idolId:[url,...] }
 
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
@@ -554,7 +568,7 @@
   function rankOf(id){const d=STATE[id];if(!d)return '-';const s=idolsInRound(d.birthMonth,d.gender).sort((a,b)=>b.votes-a.votes);return (s.findIndex(x=>x.id===id)+1)+'위';}
   function avatarBG(d){
     const grad=`background:linear-gradient(135deg,${d.c[0]},${d.c[1]})`;
-    const src=(d.id===myBias&&biasPhoto)?biasPhoto:(d.photo||'');
+    const src=d.photo||'';
     const img=src?`<img class="ava-img" src="${src}" alt="" loading="lazy" onerror="this.remove()">`:'';
     return{bg:grad,txt:initial(d.nm)+img};
   }
@@ -588,7 +602,7 @@
     const isFinal=stage==='final';
     const phases=[['예선',r.prelim,!isFinal],['본선',r.final,isFinal],['생일 광고',r.ad,false]];
     const tl=phases.map((p,i)=>`<div class="ph ${p[2]?'on':''}"><span class="t">${p[0]}</span><span class="d">${p[1]}</span></div>${i<2?'<span class="ph-ar">→</span>':''}`).join('');
-    $('#roundHead').innerHTML=`<div class="rh-cap">📅 ${active}월 라운드 일정 <span>(참고용)</span></div><div class="status-row"><span class="chip live">● ${isFinal?'본선 진행중':'예선 진행중'}</span><span style="font-size:11px;color:var(--mute)">${active}월 생일 · ${isFinal?'TOP 10 결선':'TOP 10 경쟁'}</span></div><div class="timeline">${tl}</div>`;
+    $('#roundHead').innerHTML=`<div class="rh-cap">📅 ${active}월 라운드 일정</div><div class="rh-note">※ 투표 집계 시스템상 아래 일정은 변경될 수 있습니다.</div><div class="status-row"><span class="chip live">● ${isFinal?'본선 진행중':'예선 진행중'}</span><span style="font-size:11px;color:var(--mute)">${active}월 생일 · ${isFinal?'TOP 10 결선':'TOP 10 경쟁'}</span></div><div class="timeline">${tl}</div>`;
   }
   function buildGenderToggle(){
     const g=$('#gtoggle');g.innerHTML='';
@@ -708,15 +722,30 @@
         <div class="brow"><span class="pillinfo">🎂 ${d.bday}</span><span class="pillinfo">🏆 ${rankOf(d.id)}</span><span class="pillinfo">💗 내 표 ${fmt(myVotes[d.id]||0)}</span></div>
         <div style="font-size:12px;opacity:.95;margin-top:10px;line-height:1.5">${d.bio}</div>
         <div class="bbtns">
-          <button class="bbtn" id="photoBtn">사진 설정</button>
           <button class="bbtn outline" id="changeBtn">최애 변경</button>
         </div>
         <input type="file" id="photoInput" accept="image/*" style="display:none" />
       </div>
+
+      <div class="fan-photos">
+        <div class="fp-head">📸 팬 제출 사진 <span>탭하면 대표 사진으로 바뀌어요</span></div>
+        <div class="fp-strip" id="fpStrip"></div>
+        <div class="fp-note">팬들이 보내준 사진으로 대표 이미지가 업데이트돼요. 제출 사진은 <b>직접 촬영했거나 저작권 문제가 없는 사진</b>이어야 하며, 부적절한 사진은 관리자가 내릴 수 있어요.</div>
+      </div>
+
       <button class="cta" id="goVote">${findIdol(d.id).round}월 라운드에서 ${d.nm} 응원하기</button>`;
-    $('#photoBtn').onclick=()=>$('#photoInput').click();
-    $('#photoInput').onchange=e=>{const f=e.target.files[0];if(!f)return;if(biasPhoto)URL.revokeObjectURL(biasPhoto);biasPhoto=URL.createObjectURL(f);buildBias();toast('최애 사진이 설정됐어요 💗');};
-    $('#changeBtn').onclick=()=>{myBias=null;if(biasPhoto){URL.revokeObjectURL(biasPhoto);biasPhoto=null;}buildBias();};
+    function renderFanStrip(){
+      const strip=$('#fpStrip');if(!strip)return;
+      const subs=fanPhotos[d.id]||[];
+      const add=`<button class="fp-add" id="fpAdd">＋<span>사진 제출</span></button>`;
+      const thumbs=subs.map((u,i)=>`<button class="fp-thumb ${STATE[d.id].photo===u?'on':''}" data-i="${i}"><img src="${u}" alt=""></button>`).join('');
+      strip.innerHTML=add+thumbs;
+      $('#fpAdd').onclick=()=>$('#photoInput').click();
+      strip.querySelectorAll('.fp-thumb').forEach(btn=>btn.onclick=()=>{STATE[d.id].photo=subs[+btn.dataset.i];buildBias();toast('대표 사진이 변경됐어요 💗');});
+    }
+    renderFanStrip();
+    $('#photoInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);(fanPhotos[d.id]=fanPhotos[d.id]||[]).push(url);STATE[d.id].photo=url;buildBias();updateMe();toast('사진이 제출되어 대표로 설정됐어요 💗');};
+    $('#changeBtn').onclick=()=>{myBias=null;buildBias();};
     $('#goVote').onclick=()=>{const f=findIdol(myBias);activeGender=f.idol.gender;const m=f.round;if(FINAL_MONTHS.includes(m)){stage='final';active=m;}else if(PRELIM_MONTHS.includes(m)){stage='prelim';active=m;}buildStageTabs();buildTabs();buildGenderToggle();buildRoundHead();buildList();go('rank');setTimeout(()=>openVote(myBias),250);};
   }
 
