@@ -79,12 +79,18 @@
   .gbtn.on{background:var(--grad);color:#fff;box-shadow:0 6px 14px -6px rgba(255,77,141,.7);}
 
   .round-head{margin:11px 2px 0;background:var(--bg-soft);border:1px solid var(--line);border-radius:16px;padding:12px 13px;}
-  .stage-tabs{display:flex;gap:8px;margin:12px 2px 0;}
-  .stage-tab{flex:1;border:1.5px solid var(--line);background:var(--bg);border-radius:14px;padding:11px 8px;cursor:pointer;text-align:center;font-family:'Noto Sans KR';}
-  .stage-tab .st-t{font-family:'Black Han Sans';font-size:16px;color:var(--mute);line-height:1;}
-  .stage-tab .st-s{display:block;font-size:10px;color:var(--mute-2);font-weight:600;margin-top:4px;}
-  .stage-tab.on{border-color:transparent;background:var(--grad);box-shadow:0 6px 16px rgba(255,77,141,.25);}
+  .stage-tabs{display:flex;flex-direction:column;gap:8px;margin:12px 2px 0;}
+  .stage-tab{width:100%;border:1.5px solid var(--line);background:var(--bg);border-radius:15px;cursor:pointer;text-align:center;font-family:'Noto Sans KR';display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .stage-tab .st-t{font-family:'Black Han Sans';color:var(--mute);line-height:1.1;}
+  .stage-tab .st-s{font-size:11px;color:var(--mute-2);font-weight:600;margin-top:4px;}
+  .stage-tab.big{padding:16px 8px;}
+  .stage-tab.big .st-t{font-size:22px;}
+  .stage-tab.slim{padding:11px 8px;}
+  .stage-tab.slim .st-t{font-size:16px;}
+  .stage-tab.on{border-color:transparent;background:var(--grad);box-shadow:0 8px 20px -6px rgba(255,77,141,.45);}
   .stage-tab.on .st-t,.stage-tab.on .st-s{color:#fff;}
+  .rh-cap{font-size:11px;font-weight:700;color:var(--mute);margin-bottom:8px;}
+  .rh-cap span{color:var(--mute-2);font-weight:500;}
   .row.adv{background:linear-gradient(90deg,#fff7e9,var(--surface) 55%);}
   .row.adv .rank{color:#e29a2b;}
   .status-row{display:flex;align-items:center;gap:8px;}
@@ -98,7 +104,7 @@
   .ph.on .t{color:var(--pink-deep);} .ph .d{font-size:9.5px;}
   .ph-ar{color:var(--mute-2);font-size:11px;}
 
-  .prize-tag{margin:11px 2px 6px;padding:11px 13px;border-radius:13px;background:var(--grad-soft);border:1px solid #ffd4e6;font-size:11.5px;color:var(--pink-deep);font-weight:700;line-height:1.45;}
+  .prize-tag{margin:12px 2px 8px;padding:13px 15px;border-radius:14px;background:var(--grad-soft);border:1.5px solid #ffc2dc;font-size:14px;color:var(--pink-deep);font-weight:800;line-height:1.5;}
   .prize-tag b{color:var(--pink-deep);}
 
   .list{display:flex;flex-direction:column;position:relative;margin-top:4px;}
@@ -284,9 +290,9 @@
       <div class="stage-tabs" id="stageTabs"></div>
       <div class="tabs" id="tabs"></div>
       <div class="gtoggle" id="gtoggle"></div>
-      <div class="round-head" id="roundHead"></div>
       <div class="prize-tag" id="prizeTag"></div>
       <div class="list" id="list"></div>
+      <div class="round-head" id="roundHead"></div>
     </section>
 
     <!-- ===== 마이최애 ===== -->
@@ -507,16 +513,18 @@
   // ===== 본선/예선 구조 =====
   // 데모: 9·10월 = 본선(TOP 10) / 11월 = 예선(전원). 실제 출시 땐 오늘 날짜로 자동 계산.
   // 규칙: 생일 X월 → 예선 (X-2)월 1~9일 / 본선 (X-2)월 10일~(X-1)월 15일 / 정산 (X-1)월 15일
-  const FINAL_MONTHS=['9','10'];   // 🏆 본선 (가까운 2달)
-  const PRELIM_MONTHS=['11'];      // ⚔️ 예선 (먼 달, 최대 5달까지 확장 가능)
+  const FINAL_MONTHS=['9','10'];        // 🏆 본선 (TOP 10)
+  const PRELIM_MONTHS=['11','12','1'];  // ⚔️ 예선 (다가오는 달들)
   const FINAL_SLOTS=10;            // 본선 진출 인원 (고정)
   const ROUND_META={
     '9' :{prelim:'7/1–9',  final:'7/10–8/15', settle:'8/15',  ad:'9월'},
     '10':{prelim:'8/1–9',  final:'8/10–9/15', settle:'9/15',  ad:'10월'},
     '11':{prelim:'9/1–9',  final:'9/10–10/15',settle:'10/15', ad:'11월'},
+    '12':{prelim:'10/1–9', final:'10/10–11/15',settle:'11/15',ad:'12월'},
+    '1' :{prelim:'11/1–9', final:'11/10–12/15',settle:'12/15',ad:'1월'},
   };
 
-  let balance=0, stage='final', active='9', activeGender='female', screen='rank';
+  let balance=0, stage='final', active='9', activeGender='male', screen='rank';
   let myBias=null, biasPhoto=null, nickname='아미보라', attClaimed=false;
   const myVotes={};
 
@@ -556,9 +564,9 @@
   /* ---------- 랭킹 ---------- */
   function buildStageTabs(){
     const s=$('#stageTabs');s.innerHTML='';
-    [['final','🏆 본선','가까운 2달 · TOP 10'],['prelim','⚔️ 예선','먼 달 · 전원 경쟁']].forEach(([k,t,sub])=>{
+    [['final','🏆 본선','TOP 10','big'],['prelim','⚔️ 예선','TOP 10을 향한 경쟁!','slim']].forEach(([k,t,sub,sz])=>{
       const b=document.createElement('button');
-      b.className='stage-tab'+(k===stage?' on':'');
+      b.className='stage-tab '+sz+(k===stage?' on':'');
       b.innerHTML=`<span class="st-t">${t}</span><span class="st-s">${sub}</span>`;
       b.onclick=()=>{stage=k;active=(stage==='final'?FINAL_MONTHS:PRELIM_MONTHS)[0];buildStageTabs();buildTabs();buildRoundHead();buildList();};
       s.appendChild(b);
@@ -580,11 +588,11 @@
     const isFinal=stage==='final';
     const phases=[['예선',r.prelim,!isFinal],['본선',r.final,isFinal],['생일 광고',r.ad,false]];
     const tl=phases.map((p,i)=>`<div class="ph ${p[2]?'on':''}"><span class="t">${p[0]}</span><span class="d">${p[1]}</span></div>${i<2?'<span class="ph-ar">→</span>':''}`).join('');
-    $('#roundHead').innerHTML=`<div class="status-row"><span class="chip live">● ${isFinal?'본선 진행중':'예선 진행중'}</span><span style="font-size:11px;color:var(--mute)">${active}월 생일 · ${isFinal?'TOP 10 결선':'전원 예선'}</span></div><div class="timeline">${tl}</div>`;
+    $('#roundHead').innerHTML=`<div class="rh-cap">📅 ${active}월 라운드 일정 <span>(참고용)</span></div><div class="status-row"><span class="chip live">● ${isFinal?'본선 진행중':'예선 진행중'}</span><span style="font-size:11px;color:var(--mute)">${active}월 생일 · ${isFinal?'TOP 10 결선':'TOP 10 경쟁'}</span></div><div class="timeline">${tl}</div>`;
   }
   function buildGenderToggle(){
     const g=$('#gtoggle');g.innerHTML='';
-    [['female','👧 걸즈'],['male','👦 보이즈']].forEach(([k,label])=>{
+    [['male','👦 보이즈'],['female','👧 걸즈']].forEach(([k,label])=>{
       const b=document.createElement('button');
       b.className='gbtn'+(k===activeGender?' on':'');
       b.textContent=label;
@@ -622,7 +630,7 @@
     sortedAll.forEach((d,i)=>{const el=rowEls.get(d.id);el.querySelector('.rank').textContent=i+1;el.classList.toggle('top',i===0);el.classList.toggle('adv',stage==='prelim'&&i<FINAL_SLOTS);});
     const lead=sortedAll[0];
     if(stage==='final') $('#prizeTag').innerHTML=`🎁 ${active}월 ${genLabel()} 1위 <b>${lead.nm}</b> · 이대로면 <b>생일 전광판 광고</b> 주인공!`;
-    else $('#prizeTag').innerHTML=`⚔️ ${active}월 ${genLabel()} 예선 · 상위 <b>${FINAL_SLOTS}명</b>이 본선 진출 (현재 ${sortedAll.length}명 경쟁)`;
+    else $('#prizeTag').innerHTML=`⚔️ ${active}월 ${genLabel()} 예선 · <b>TOP 10</b>을 향한 경쟁!`;
     if(instant||reduce)return;
     rowEls.forEach((el,id)=>{const dy=(firsts.get(id)||0)-el.getBoundingClientRect().top;if(!dy)return;el.style.transform=`translateY(${dy}px)`;el.style.transition='none';requestAnimationFrame(()=>{el.style.transition='transform .42s cubic-bezier(.2,.8,.2,1)';el.style.transform='';});});
   }
