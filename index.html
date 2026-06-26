@@ -97,7 +97,8 @@
   .row{display:flex;align-items:center;gap:11px;padding:10px 8px;border-radius:18px;border:1px solid transparent;will-change:transform;}
   .row + .row{margin-top:4px;}
   .rank{width:22px;text-align:center;flex:none;font-family:'Black Han Sans';font-size:17px;color:var(--mute-2);}
-  .avatar{width:44px;height:44px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans';font-size:17px;color:#fff;background-size:cover;background-position:center;}
+  .avatar{width:44px;height:44px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans';font-size:17px;color:#fff;background-size:cover;background-position:center;position:relative;overflow:hidden;}
+  .ava-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   .who{flex:1;min-width:0;}
   .who .nm{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .crown{display:none;font-size:12px;margin-left:3px;}
@@ -137,10 +138,10 @@
   .pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 2px;}
   .pick{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--bg);cursor:pointer;transition:.12s;}
   .pick:active{transform:scale(.97);} .pick.sel{border-color:var(--pink);background:var(--grad-soft);}
-  .pick .pa{width:34px;height:34px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans';color:#fff;font-size:14px;background-size:cover;background-position:center;}
+  .pick .pa{width:34px;height:34px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans';color:#fff;font-size:14px;background-size:cover;background-position:center;position:relative;overflow:hidden;}
   .pick .pn{font-size:12px;font-weight:800;} .pick .pg{font-size:10px;color:var(--mute);}
   .bias-hero{margin:0 2px 12px;border-radius:20px;overflow:hidden;background:var(--grad);color:#fff;padding:18px;position:relative;}
-  .bias-hero .bphoto{width:78px;height:78px;border-radius:20px;background:rgba(255,255,255,.25);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans';font-size:30px;border:2px solid rgba(255,255,255,.6);}
+  .bias-hero .bphoto{width:78px;height:78px;border-radius:20px;background:rgba(255,255,255,.25);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans';font-size:30px;border:2px solid rgba(255,255,255,.6);position:relative;overflow:hidden;}
   .bias-hero .bnm{font-size:22px;font-weight:900;margin-top:12px;}
   .bias-hero .bgp{font-size:12px;opacity:.92;font-weight:700;}
   .bias-hero .brow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
@@ -247,7 +248,7 @@
   .bias-hint{text-align:center;color:var(--mute);font-size:12px;line-height:1.8;padding:22px 10px;}
   /* 내정보 최애 썸네일 */
   .mebias{display:flex;align-items:center;gap:7px;justify-content:flex-end;}
-  .mebias .mb-thumb{width:26px;height:26px;border-radius:50%;background-size:cover;background-position:center;flex:none;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:800;}
+  .mebias .mb-thumb{width:26px;height:26px;border-radius:50%;background-size:cover;background-position:center;flex:none;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:800;position:relative;overflow:hidden;}
   .mebias small{color:var(--mute);font-weight:600;}
 
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
@@ -517,9 +518,10 @@
   function findIdol(id){return STATE[id]?{idol:STATE[id],round:String(STATE[id].birthMonth)}:null;}
   function rankOf(id){const d=STATE[id];if(!d)return '-';const s=idolsInRound(d.birthMonth,d.gender).sort((a,b)=>b.votes-a.votes);return (s.findIndex(x=>x.id===id)+1)+'위';}
   function avatarBG(d){
-    if(d.id===myBias&&biasPhoto)return{bg:`background-image:url(${biasPhoto})`,txt:''};
-    if(d.photo)return{bg:`background-image:url(${d.photo})`,txt:''};
-    return{bg:`background:linear-gradient(135deg,${d.c[0]},${d.c[1]})`,txt:initial(d.nm)};
+    const grad=`background:linear-gradient(135deg,${d.c[0]},${d.c[1]})`;
+    const src=(d.id===myBias&&biasPhoto)?biasPhoto:(d.photo||'');
+    const img=src?`<img class="ava-img" src="${src}" alt="" loading="lazy" onerror="this.remove()">`:'';
+    return{bg:grad,txt:initial(d.nm)+img};
   }
 
   function renderBalance(){balValEl.textContent=fmt(balance);const mp=$('#mePick');if(mp)mp.textContent=fmt(balance)+' 픽';}
@@ -615,8 +617,9 @@
   }
   function lackFx(){balEl.classList.remove('lack');void balEl.offsetWidth;balEl.classList.add('lack');toast('픽이 부족해요 — 픽 모으기에서 충전하세요!');}
 
-  /* 실시간 다른 팬 투표 시뮬 */
-  setInterval(()=>{
+  /* 실시간 다른 팬 투표 시뮬 (데모용) — 지금은 꺼둠. true로 바꾸면 다시 켜져요 */
+  const SIM_VOTES=false;
+  if(SIM_VOTES) setInterval(()=>{
     if(screen!=='rank')return;
     if($('#adScrim').classList.contains('show')||voteScrim.classList.contains('show'))return;
     const arr=idolsInRound(active,activeGender);if(arr.length===0)return;
