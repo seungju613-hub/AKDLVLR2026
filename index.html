@@ -376,7 +376,7 @@
       <div class="card soft">
         <div class="card-h">
           <div class="card-ic">🐤</div>
-          <div><div class="card-t" id="meHello">아미보라 님</div><div class="card-d">카카오로 로그인됨 · 데모 계정</div></div>
+          <div><div class="card-t" id="meHello">아미보라 님</div><div class="card-d" id="meLogin">둘러보는 중 · 로그인하면 응원할 수 있어요</div></div>
         </div>
       </div>
 
@@ -908,9 +908,13 @@
     if(!window.fbOnAuth)return;
     window.fbOnAuth(user=>{
       isLoggedIn=!!user;
+      const ml=$('#meLogin');
       if(user){
         if(user.displayName){ nickname=user.displayName; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
+        if(ml)ml.textContent='구글로 로그인됨'+(user.email?' · '+user.email:'');
         enterApp(); updateMe();
+      } else {
+        if(ml)ml.textContent='둘러보는 중 · 로그인하면 응원할 수 있어요';
       }
     });
   }
