@@ -461,7 +461,7 @@
 <!-- Firebase: 투표 저장·실시간 집계 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, increment, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, increment, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyA0INqoWE6Ae1SOkMxc2UBcQm7v4bAyv-c",
@@ -497,7 +497,11 @@
       }
     };
     window.fbLogout=()=>signOut(auth);
-    window.fbOnAuth=(cb)=>onAuthStateChanged(auth,cb);
+    let currentUser=null;
+    window.fbOnAuth=(cb)=>onAuthStateChanged(auth,u=>{currentUser=u;cb(u);});
+    // 픽 잔액: 계정(users/{uid})에 저장·복원
+    window.fbGetBalance=async()=>{ if(!currentUser)return null; try{ const s=await getDoc(doc(db,'users',currentUser.uid)); return s.exists()?(s.data().balance??null):null; }catch(e){ console.error('잔액 불러오기 실패',e); return null; } };
+    window.fbSetBalance=(n)=>{ if(!currentUser)return; setDoc(doc(db,'users',currentUser.uid),{balance:n},{merge:true}).catch(e=>console.error('잔액 저장 실패',e)); };
     window.fbReady=true;
     window.dispatchEvent(new Event('fb-ready'));
     console.log('[MYPICK] Firebase 연결됨');
@@ -631,7 +635,9 @@
     return{bg:grad,txt:initial(d.nm)+img};
   }
 
-  function renderBalance(){balValEl.textContent=fmt(balance);const mp=$('#mePick');if(mp)mp.textContent=fmt(balance)+' 픽';}
+  let balTimer=null, balanceReady=false;
+  function persistBalance(){ if(!balanceReady||!window.fbSetBalance)return; clearTimeout(balTimer); balTimer=setTimeout(()=>window.fbSetBalance(balance),400); }
+  function renderBalance(){balValEl.textContent=fmt(balance);const mp=$('#mePick');if(mp)mp.textContent=fmt(balance)+' 픽';persistBalance();}
 
   /* ---------- 랭킹 ---------- */
   function buildStageTabs(){
@@ -953,8 +959,11 @@
         const nm=user.displayName||(user.email?user.email.split('@')[0]:'');
         if(nm){ nickname=nm; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
         if(ml)ml.textContent=(user.displayName?'구글':'이메일')+'로 로그인됨'+(user.email?' · '+user.email:'');
-        enterApp(); updateMe();
+        enterApp();
+        if(window.fbGetBalance){ window.fbGetBalance().then(b=>{ if(b!=null)balance=b; balanceReady=true; renderBalance(); updateMe(); }); }
+        else updateMe();
       } else {
+        balanceReady=false; balance=0; renderBalance();
         if(ml)ml.textContent='둘러보는 중 · 로그인하면 응원할 수 있어요';
       }
     });
