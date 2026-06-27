@@ -461,7 +461,7 @@
       </div>
     </div>
     <button class="browse" id="browseBtn">먼저 둘러볼게요 →</button>
-    <div class="lnote">카카오 로그인은 준비 중이에요. 지금은 구글·이메일로 시작할 수 있어요.</div>
+    <div class="lnote">로그인하면 픽·투표 기록이 안전하게 저장돼요.</div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -755,7 +755,7 @@
   /* ---------- 응원(투표) 시트 ---------- */
   const voteScrim=$('#voteScrim');
   function openVote(id){
-    if(!isLoggedIn && window.fbOnAuth){ toast('로그인하면 내 최애를 응원할 수 있어요 💗'); showLogin(); return; }
+    if(!isLoggedIn && window.fbOnAuth){ toast('로그인 후 참여할 수 있어요 💗'); setTimeout(showLogin,1000); return; }
     const d=findIdol(id).idol;
     const opts=VOTE_OPTS.map(o=>{const dis=balance<o.p?'disabled':'';const best=o.v===10?'best':'';
       return `<div class="opt ${dis} ${best}" data-id="${id}" data-v="${o.v}" data-p="${o.p}"><div class="ov">${o.v}표<span class="ovs">${best?'추천':''}</span></div><div class="op">${fmt(o.p)} <small>픽</small></div></div>`;}).join('');
