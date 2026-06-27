@@ -445,6 +445,31 @@
 </div>
 
 <script src="roster.js"></script>
+<!-- Firebase: 투표 저장·실시간 집계 -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, increment, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyA0INqoWE6Ae1SOkMxc2UBcQm7v4bAyv-c",
+    authDomain: "mypick-d304e.firebaseapp.com",
+    projectId: "mypick-d304e",
+    storageBucket: "mypick-d304e.firebasestorage.app",
+    messagingSenderId: "178281594523",
+    appId: "1:178281594523:web:d6c493f81be0d90048103e",
+    measurementId: "G-N527NBSYT8"
+  };
+  try{
+    const app=initializeApp(firebaseConfig);
+    const db=getFirestore(app);
+    // 한 표 던지면 해당 가수 누적 득표를 +v (문서 없으면 생성)
+    window.fbVote=async(id,v)=>{ try{ await setDoc(doc(db,'tallies',id),{votes:increment(v)},{merge:true}); }catch(e){ console.error('투표 저장 실패',e); } };
+    // 모든 가수 득표를 실시간 구독 → 콜백에 {id:total} 전달
+    window.fbListen=(cb)=>{ onSnapshot(collection(db,'tallies'),s=>{const m={};s.forEach(d=>m[d.id]=(d.data().votes)||0);cb(m);},e=>console.error('실시간 수신 실패',e)); };
+    window.fbReady=true;
+    window.dispatchEvent(new Event('fb-ready'));
+    console.log('[MYPICK] Firebase 연결됨');
+  }catch(e){ console.error('Firebase 초기화 실패',e); }
+</script>
 <script>
 (function(){
   "use strict";
@@ -668,7 +693,10 @@
   function applyVote(id,v,p){
     if(balance<p){closeVote();lackFx();return;}
     balance-=p;renderBalance();
-    const d=findIdol(id).idol;d.votes+=v;myVotes[id]=(myVotes[id]||0)+v;
+    const d=findIdol(id).idol;
+    myVotes[id]=(myVotes[id]||0)+v;
+    if(window.fbVote) window.fbVote(id,v);   // 서버에 영구 저장 (스냅샷이 전체 득표 정합화)
+    d.votes+=v;                               // 화면 즉시 반영
     closeVote();
     if(screen==='rank'){
       const row=rowEls.get(id);
@@ -890,10 +918,22 @@
       <p style="font-size:10.5px;color:var(--mute);text-align:center;margin-top:8px">＊ 이메일은 자리표시예요. 실제 운영 계정으로 교체 예정.</p>`);
   };
 
-  // 데모용: 시작 득표를 보기 좋게 분산(실제 출시 땐 서버 집계로 대체). 본선 진출자 산정 기준.
-  Object.values(STATE).forEach(d=>{ if(!d.votes) d.votes=1000+(hash(d.id)%120000); });
+  // 데모 시작 득표(서버 데이터 쌓이기 전 보기 좋으라고). 실제 출시 땐 SEED_BASE=false로.
+  const SEED_BASE=true;
+  function baseSeed(id){ return SEED_BASE ? 1000+(hash(id)%120000) : 0; }
+  Object.values(STATE).forEach(d=>{ d.votes=baseSeed(d.id); });
   computeFinalists();
   buildStageTabs();buildTabs();buildGenderToggle();buildRoundHead();buildList();renderBalance();updateMe();
+
+  /* ---------- Firebase: 실시간 투표 동기화 ---------- */
+  let finalistsLocked=false;
+  function applyServerTotals(m){
+    Object.keys(STATE).forEach(id=>{ STATE[id].votes=baseSeed(id)+(m[id]||0); });
+    if(!finalistsLocked){ computeFinalists(); finalistsLocked=true; }  // 본선 진출자는 첫 집계로 고정
+    if(screen==='rank'){ roundIdols(active,activeGender).forEach(d=>bumpNum(d.id,false)); reorder(false); }
+  }
+  function hookFirebase(){ if(window.fbListen) window.fbListen(applyServerTotals); }
+  if(window.fbReady) hookFirebase(); else window.addEventListener('fb-ready',hookFirebase);
 })();
 </script>
 </body>
