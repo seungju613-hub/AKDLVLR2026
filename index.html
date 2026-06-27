@@ -517,8 +517,12 @@
     window.fbSetBalance=(n)=>{ if(!currentUser)return; setDoc(doc(db,'users',currentUser.uid),{balance:n},{merge:true}).catch(e=>console.error('잔액 저장 실패',e)); };
     // 팬 사진: Storage 업로드 + 승인 대기 기록
     const storage=getStorage(app);
-    const ADMIN_EMAILS=['seungju613@gmail.com'];  // 관리자 계정 (필요시 추가)
-    window.fbIsAdmin=()=> !!currentUser && ADMIN_EMAILS.includes((currentUser.email||'').toLowerCase());
+    const ADMIN_EMAILS=['seungju613@gmail.com'];  // 이메일 주는 계정(구글)
+    const ADMIN_UIDS=[];  // 이메일 없는 계정(카카오) — 로그인 후 UID 추가
+    window.fbIsAdmin=()=> !!currentUser && (
+      ADMIN_EMAILS.includes((currentUser.email||'').toLowerCase())
+      || ADMIN_UIDS.includes(currentUser.uid)
+    );
     window.fbUploadFanPhoto=async(idolId,file)=>{
       if(!currentUser) throw new Error('login-required');
       const r=storageRef(storage,`fan-photos/${idolId}/${Date.now()}_${currentUser.uid}.jpg`);
@@ -1031,6 +1035,7 @@
       const ml=$('#meLogin');
       if(user){
         const pid=(user.providerData&&user.providerData[0]&&user.providerData[0].providerId)||'';
+        console.log('[MYPICK] 로그인 UID:',user.uid,'· provider:',pid,'· email:',user.email||'(없음)');
         const plabel = pid==='google.com'?'구글' : pid==='oidc.kakao'?'카카오' : pid==='password'?'이메일' : '계정';
         const nm=user.displayName||(user.email?user.email.split('@')[0]:'');
         if(nm){ nickname=nm; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
@@ -1074,10 +1079,9 @@
   $('#menuAdSubmit').onclick=()=>{
     openInfo(`<h3>광고 시안 접수</h3>
       <p>이달의 1위 가수에게는 <b>강남역 버스정류장 전광판 생일 광고</b>가 진행돼요. 광고 시안을 아래 메일로 보내주세요.</p>
-      <div class="mailbox">📧 mypick.ads@example.com</div>
+      <div class="mailbox">📧 contact@mypick.info</div>
       <p class="warn">• <b>깨짐 없는 고화질 파일</b>로 보내주세요(저화질·압축 손상 파일은 광고가 제대로 나오지 않아요).<br>• 시안의 디자인 요소가 <b>타인의 저작권을 침해하지 않도록</b> 주의해 주세요.<br>• <b>시안이 접수되지 않으면 광고가 정상적으로 진행되지 않습니다.</b></p>
-      <a class="primary" href="mailto:mypick.ads@example.com?subject=%5B%EB%A7%88%EC%9D%B4%ED%94%BD%5D%20%EA%B4%91%EA%B3%A0%20%EC%8B%9C%EC%95%88%20%EC%A0%91%EC%88%98">메일로 시안 보내기 →</a>
-      <p style="font-size:10.5px;color:var(--mute);text-align:center;margin-top:8px">＊ 이메일은 자리표시예요. 실제 운영 계정으로 교체 예정.</p>`);
+      <a class="primary" href="mailto:contact@mypick.info?subject=%5B%EB%A7%88%EC%9D%B4%ED%94%BD%5D%20%EA%B4%91%EA%B3%A0%20%EC%8B%9C%EC%95%88%20%EC%A0%91%EC%88%98">메일로 시안 보내기 →</a>`);
   };
   // 관리자: 팬 사진 승인
   const menuPhotoAdmin=$('#menuPhotoAdmin');
