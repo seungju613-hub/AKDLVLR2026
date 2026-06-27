@@ -449,6 +449,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getFirestore, doc, setDoc, increment, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyA0INqoWE6Ae1SOkMxc2UBcQm7v4bAyv-c",
     authDomain: "mypick-d304e.firebaseapp.com",
@@ -465,6 +466,12 @@
     window.fbVote=async(id,v)=>{ try{ await setDoc(doc(db,'tallies',id),{votes:increment(v)},{merge:true}); }catch(e){ console.error('투표 저장 실패',e); } };
     // 모든 가수 득표를 실시간 구독 → 콜백에 {id:total} 전달
     window.fbListen=(cb)=>{ onSnapshot(collection(db,'tallies'),s=>{const m={};s.forEach(d=>m[d.id]=(d.data().votes)||0);cb(m);},e=>console.error('실시간 수신 실패',e)); };
+    // 구글 로그인
+    const auth=getAuth(app);
+    const gp=new GoogleAuthProvider();
+    window.fbGoogleLogin=()=>signInWithPopup(auth,gp);
+    window.fbLogout=()=>signOut(auth);
+    window.fbOnAuth=(cb)=>onAuthStateChanged(auth,cb);
     window.fbReady=true;
     window.dispatchEvent(new Event('fb-ready'));
     console.log('[MYPICK] Firebase 연결됨');
@@ -678,6 +685,7 @@
   /* ---------- 응원(투표) 시트 ---------- */
   const voteScrim=$('#voteScrim');
   function openVote(id){
+    if(!isLoggedIn && window.fbOnAuth){ toast('로그인하면 내 최애를 응원할 수 있어요 💗'); showLogin(); return; }
     const d=findIdol(id).idol;
     const opts=VOTE_OPTS.map(o=>{const dis=balance<o.p?'disabled':'';const best=o.v===10?'best':'';
       return `<div class="opt ${dis} ${best}" data-id="${id}" data-v="${o.v}" data-p="${o.p}"><div class="ov">${o.v}표<span class="ovs">${best?'추천':''}</span></div><div class="op">${fmt(o.p)} <small>픽</small></div></div>`;}).join('');
@@ -849,7 +857,7 @@
     $('#meVotes').textContent=fmt(total)+'표';
   }
   $('#nickSave').onclick=()=>{const v=$('#nickInput').value.trim()||'아미보라';nickname=v;updateMe();toast('닉네임이 저장됐어요');};
-  $('#logoutBtn').onclick=()=>{go('rank');loginEl.classList.remove('hide');$('.content').scrollTop=0;};
+  $('#logoutBtn').onclick=async()=>{if(window.fbLogout){try{await window.fbLogout();}catch(e){}}isLoggedIn=false;go('rank');loginEl.classList.remove('hide');$('.content').scrollTop=0;};
 
   /* ---------- ad modal ---------- */
   const adScrim=$('#adScrim'),adFill=$('#adFill'),adCount=$('#adCount'),adDone=$('#adDone'),adTitle=$('#adTitle'),adSub=$('#adSub');
@@ -881,10 +889,32 @@
 
   /* ---------- 로그인 ---------- */
   const loginEl=$('#login');
+  let isLoggedIn=false;
   const enterApp=()=>loginEl.classList.add('hide');
   const showLogin=()=>{loginEl.classList.remove('hide');$('.content').scrollTop=0;};
-  $$('.sso').forEach(b=>b.onclick=()=>{toast(b.dataset.sso+' 로그인은 출시 후 — 데모로 입장합니다');setTimeout(enterApp,450);});
+  $$('.sso').forEach(b=>b.onclick=async()=>{
+    if(b.dataset.sso==='구글' && window.fbGoogleLogin){
+      try{ await window.fbGoogleLogin(); }   // 성공하면 onAuth가 입장·닉네임 처리
+      catch(e){ console.error(e); toast('구글 로그인이 취소됐어요'); }
+    } else if(b.dataset.sso==='구글'){
+      enterApp();   // 파이어베이스 미연결(로컬 미리보기) 폴백
+    } else {
+      toast(b.dataset.sso+' 로그인은 준비 중이에요');
+    }
+  });
   $('#browseBtn').onclick=enterApp;
+  // 로그인 상태 변화 감지 (새로고침해도 로그인 유지)
+  function hookAuth(){
+    if(!window.fbOnAuth)return;
+    window.fbOnAuth(user=>{
+      isLoggedIn=!!user;
+      if(user){
+        if(user.displayName){ nickname=user.displayName; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
+        enterApp(); updateMe();
+      }
+    });
+  }
+  if(window.fbReady) hookAuth(); else window.addEventListener('fb-ready',hookAuth);
 
   /* ---------- 언어 토글 ---------- */
   $('#langBtn').onclick=()=>toast('영어 버전은 준비 중이에요 · English coming soon');
