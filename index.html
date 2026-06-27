@@ -228,6 +228,13 @@
   .sso.naver{background:#03C75A;color:#fff;}
   .sso.google{background:#fff;color:#1f1f1f;border:1px solid #e5e0e3;}
   .login .browse{margin-top:22px;background:none;border:0;color:#fff;font-family:inherit;font-weight:700;font-size:13px;text-decoration:underline;opacity:.92;cursor:pointer;}
+  .sso.email{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.45);}
+  .email-form{display:none;flex-direction:column;gap:8px;margin-top:4px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:12px;}
+  .email-form.show{display:flex;}
+  .em-input{border:0;border-radius:11px;padding:11px 13px;font-family:'Noto Sans KR';font-size:14px;color:#2a2230;background:#fff;outline:none;}
+  .em-go{border:0;border-radius:11px;padding:12px;background:#2a2230;color:#fff;font-family:'Noto Sans KR';font-weight:800;font-size:14px;cursor:pointer;}
+  .em-go:disabled{opacity:.6;}
+  .em-hint{font-size:10.5px;color:#fff;opacity:.85;text-align:center;}
   .login .lnote{margin-top:24px;font-size:10.5px;opacity:.8;line-height:1.6;max-width:280px;}
 
   /* 더보기 menu rows */
@@ -434,11 +441,17 @@
     <div class="lsub">내 최애의 생일을, 강남 한복판에<br>로그인하고 투표를 시작하세요</div>
     <div class="lbtns">
       <button class="sso kakao" data-sso="카카오">💬 카카오로 시작하기</button>
-      <button class="sso naver" data-sso="네이버">Ｎ 네이버로 시작하기</button>
       <button class="sso google" data-sso="구글">Ｇ 구글로 시작하기</button>
+      <button class="sso email" id="emailToggle">✉️ 이메일로 시작하기</button>
+      <div class="email-form" id="emailForm">
+        <input id="emEmail" class="em-input" type="email" placeholder="이메일" autocomplete="username">
+        <input id="emPw" class="em-input" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password">
+        <button class="em-go" id="emGo">시작하기</button>
+        <div class="em-hint">처음 쓰는 이메일이면 자동으로 가입돼요</div>
+      </div>
     </div>
     <button class="browse" id="browseBtn">먼저 둘러볼게요 →</button>
-    <div class="lnote">실제 소셜 로그인은 백엔드(파이어베이스) 연동 단계에서 켜져요. 지금은 데모라 바로 입장됩니다.</div>
+    <div class="lnote">카카오 로그인은 준비 중이에요. 지금은 구글·이메일로 시작할 수 있어요.</div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -449,7 +462,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getFirestore, doc, setDoc, increment, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyA0INqoWE6Ae1SOkMxc2UBcQm7v4bAyv-c",
     authDomain: "mypick-d304e.firebaseapp.com",
@@ -470,6 +483,19 @@
     const auth=getAuth(app);
     const gp=new GoogleAuthProvider();
     window.fbGoogleLogin=()=>signInWithPopup(auth,gp);
+    // 이메일: 로그인 시도 → 없으면 자동 가입 (간단형)
+    const errMsg=(c)=>({'auth/invalid-email':'이메일 형식이 올바르지 않아요','auth/weak-password':'비밀번호는 6자 이상이어야 해요','auth/missing-password':'비밀번호를 입력해주세요'}[c]||'다시 시도해주세요');
+    window.fbEmailAuth=async(email,pw)=>{
+      try{ return {user:(await signInWithEmailAndPassword(auth,email,pw)).user, mode:'login'}; }
+      catch(e1){
+        try{ return {user:(await createUserWithEmailAndPassword(auth,email,pw)).user, mode:'signup'}; }
+        catch(e2){
+          const err=new Error(e2.code);
+          err.friendly = e2.code==='auth/email-already-in-use' ? '비밀번호가 올바르지 않아요' : errMsg(e2.code);
+          throw err;
+        }
+      }
+    };
     window.fbLogout=()=>signOut(auth);
     window.fbOnAuth=(cb)=>onAuthStateChanged(auth,cb);
     window.fbReady=true;
@@ -893,15 +919,29 @@
   const enterApp=()=>loginEl.classList.add('hide');
   const showLogin=()=>{loginEl.classList.remove('hide');$('.content').scrollTop=0;};
   $$('.sso').forEach(b=>b.onclick=async()=>{
+    if(!b.dataset.sso)return;   // 이메일 버튼은 따로 처리
     if(b.dataset.sso==='구글' && window.fbGoogleLogin){
-      try{ await window.fbGoogleLogin(); }   // 성공하면 onAuth가 입장·닉네임 처리
+      try{ await window.fbGoogleLogin(); }
       catch(e){ console.error(e); toast('구글 로그인이 취소됐어요'); }
     } else if(b.dataset.sso==='구글'){
-      enterApp();   // 파이어베이스 미연결(로컬 미리보기) 폴백
+      enterApp();
     } else {
       toast(b.dataset.sso+' 로그인은 준비 중이에요');
     }
   });
+  // 이메일 로그인/가입
+  const emailToggle=$('#emailToggle'), emailForm=$('#emailForm');
+  if(emailToggle) emailToggle.onclick=()=>{ const on=emailForm.classList.toggle('show'); if(on)$('#emEmail').focus(); };
+  const emGo=$('#emGo');
+  if(emGo) emGo.onclick=async()=>{
+    const email=$('#emEmail').value.trim(), pw=$('#emPw').value;
+    if(!email||!pw){ toast('이메일과 비밀번호를 입력해주세요'); return; }
+    if(!window.fbEmailAuth){ enterApp(); return; }   // 로컬 미리보기 폴백
+    emGo.disabled=true; emGo.textContent='처리 중…';
+    try{ const r=await window.fbEmailAuth(email,pw); toast(r.mode==='signup'?'가입 완료! 환영해요 💗':'로그인됐어요 💗'); }
+    catch(e){ toast(e.friendly||'로그인에 실패했어요'); }
+    finally{ emGo.disabled=false; emGo.textContent='시작하기'; }
+  };
   $('#browseBtn').onclick=enterApp;
   // 로그인 상태 변화 감지 (새로고침해도 로그인 유지)
   function hookAuth(){
@@ -910,8 +950,9 @@
       isLoggedIn=!!user;
       const ml=$('#meLogin');
       if(user){
-        if(user.displayName){ nickname=user.displayName; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
-        if(ml)ml.textContent='구글로 로그인됨'+(user.email?' · '+user.email:'');
+        const nm=user.displayName||(user.email?user.email.split('@')[0]:'');
+        if(nm){ nickname=nm; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
+        if(ml)ml.textContent=(user.displayName?'구글':'이메일')+'로 로그인됨'+(user.email?' · '+user.email:'');
         enterApp(); updateMe();
       } else {
         if(ml)ml.textContent='둘러보는 중 · 로그인하면 응원할 수 있어요';
