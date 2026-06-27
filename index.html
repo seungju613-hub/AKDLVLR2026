@@ -472,7 +472,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, increment, onSnapshot, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-storage.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyA0INqoWE6Ae1SOkMxc2UBcQm7v4bAyv-c",
     authDomain: "mypick-d304e.firebaseapp.com",
@@ -493,6 +493,8 @@
     const auth=getAuth(app);
     const gp=new GoogleAuthProvider();
     window.fbGoogleLogin=()=>signInWithPopup(auth,gp);
+    // 카카오 (OIDC 제공자 — Firebase 콘솔의 공급업체 ID와 반드시 일치: oidc.kakao)
+    window.fbKakaoLogin=()=>{ const kp=new OAuthProvider('oidc.kakao'); return signInWithPopup(auth,kp); };
     // 이메일: 로그인 시도 → 없으면 자동 가입 (간단형)
     const errMsg=(c)=>({'auth/invalid-email':'이메일 형식이 올바르지 않아요','auth/weak-password':'비밀번호는 6자 이상이어야 해요','auth/missing-password':'비밀번호를 입력해주세요'}[c]||'다시 시도해주세요');
     window.fbEmailAuth=async(email,pw)=>{
@@ -976,13 +978,17 @@
   const showLogin=()=>{loginEl.classList.remove('hide');$('.content').scrollTop=0;};
   $$('.sso').forEach(b=>b.onclick=async()=>{
     if(!b.dataset.sso)return;   // 이메일 버튼은 따로 처리
-    if(b.dataset.sso==='구글' && window.fbGoogleLogin){
+    const prov=b.dataset.sso;
+    if(prov==='구글' && window.fbGoogleLogin){
       try{ await window.fbGoogleLogin(); }
       catch(e){ console.error(e); toast('구글 로그인이 취소됐어요'); }
-    } else if(b.dataset.sso==='구글'){
-      enterApp();
+    } else if(prov==='카카오' && window.fbKakaoLogin){
+      try{ await window.fbKakaoLogin(); }
+      catch(e){ console.error(e); toast('카카오 로그인이 취소됐어요'); }
+    } else if(prov==='구글'||prov==='카카오'){
+      enterApp();   // 로컬 미리보기 폴백
     } else {
-      toast(b.dataset.sso+' 로그인은 준비 중이에요');
+      toast(prov+' 로그인은 준비 중이에요');
     }
   });
   // 이메일 로그인/가입
@@ -1006,9 +1012,12 @@
       isLoggedIn=!!user;
       const ml=$('#meLogin');
       if(user){
+        const pid=(user.providerData&&user.providerData[0]&&user.providerData[0].providerId)||'';
+        const plabel = pid==='google.com'?'구글' : pid==='oidc.kakao'?'카카오' : pid==='password'?'이메일' : '계정';
         const nm=user.displayName||(user.email?user.email.split('@')[0]:'');
         if(nm){ nickname=nm; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
-        if(ml)ml.textContent=(user.displayName?'구글':'이메일')+'로 로그인됨'+(user.email?' · '+user.email:'');
+        const detail = user.email?(' · '+user.email):(user.displayName?(' · '+user.displayName):'');
+        if(ml)ml.textContent=plabel+'로 로그인됨'+detail;
         const pa=$('#menuPhotoAdmin'); if(pa)pa.style.display=(window.fbIsAdmin&&window.fbIsAdmin())?'flex':'none';
         enterApp();
         if(window.fbGetBalance){ window.fbGetBalance().then(b=>{ if(b!=null)balance=b; balanceReady=true; renderBalance(); updateMe(); }); }
