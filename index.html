@@ -163,6 +163,7 @@
   .bias-hero .bbtns{display:flex;gap:8px;margin-top:14px;}
   .bbtn{flex:1;border:none;border-radius:11px;padding:10px;font-family:'Noto Sans KR';font-weight:800;font-size:12px;cursor:pointer;background:#fff;color:var(--pink-deep);}
   .bbtn.outline{background:rgba(255,255,255,.18);color:#fff;}
+  .bbtn.wide{display:block;width:100%;flex:none;margin-top:9px;padding:13px;font-size:13px;background:var(--bg-soft);color:var(--pink-deep);border:1px solid var(--line);}
 
   /* info rows */
   .inforow{display:flex;align-items:center;gap:10px;padding:13px 4px;border-bottom:1px solid var(--line);}
@@ -268,7 +269,7 @@
   .bias-search:focus{border-color:var(--pink);}
   .bias-hint{text-align:center;color:var(--mute);font-size:12px;line-height:1.8;padding:22px 10px;}
   /* 내정보 최애 썸네일 */
-  .mebias{display:flex;align-items:center;gap:7px;justify-content:flex-end;}
+  .mebias{display:flex;align-items:center;gap:7px;justify-content:flex-start;}
   .mebias .mb-thumb{width:26px;height:26px;border-radius:50%;background-size:cover;background-position:center;flex:none;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:800;position:relative;overflow:hidden;}
   .mebias small{color:var(--mute);font-weight:600;}
 
@@ -633,7 +634,7 @@
   };
 
   let balance=0, stage='final', active='9', activeGender='male', screen='rank';
-  let myBias=null, biasPhoto=null, nickname='아미보라', attClaimed=false;
+  let myBias=null, pendingBias=null, biasSearching=false, biasPhoto=null, nickname='아미보라', attClaimed=false;
   const myVotes={};
   const fanPhotos={};  // 팬 제출 사진 (데모: 메모리 보관) { idolId:[url,...] }
 
@@ -794,7 +795,7 @@
   /* ---------- 마이최애 ---------- */
   function buildBias(){
     const b=$('#biasBody');
-    if(!myBias){
+    if(biasSearching || (!myBias && !pendingBias)){
       b.innerHTML=`<div class="card soft"><div class="card-d" style="margin:0">최애를 <b>검색</b>해서 한 명을 선택하세요. 그룹명·가수명으로 찾을 수 있고, 한글·영문 둘 다 돼요. <b>(예: BTS·방탄소년단, BLACKPINK·블랙핑크)</b></div></div>
         <input id="biasSearch" class="bias-search" placeholder="🔍 그룹 또는 가수 이름 검색" autocomplete="off">
         <div class="pick-grid" id="biasResults"></div>
@@ -807,10 +808,27 @@
         const hits=allIdols().filter(d=>d._blob.indexOf(q)>-1).slice(0,80);
         if(!hits.length){res.innerHTML='<div class="bias-hint">검색 결과가 없어요. 철자를 바꿔보거나, ‘내정보 → 내 가수 추가’로 요청해 주세요.</div>';return;}
         res.innerHTML=hits.map(d=>{const a=avatarBG(d);return `<div class="pick" data-id="${d.id}"><div class="pa" style="${a.bg}">${a.txt}</div><div><div class="pn">${d.nm}</div><div class="pg">${d.gp} · ${d.gender==='female'?'걸즈':'보이즈'} · ${d.bday}</div></div></div>`;}).join('');
-        res.querySelectorAll('.pick').forEach(el=>el.onclick=()=>{myBias=el.dataset.id;buildBias();updateMe();toast('최애로 설정됐어요 💗');});
+        res.querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pendingBias=el.dataset.id;biasSearching=false;buildBias();});
       }
       input.oninput=run;
       setTimeout(()=>input.focus(),60);
+      return;
+    }
+    // 미리보기 (아직 확정 전) — 검색에서 한 명을 탭한 상태
+    if(pendingBias){
+      const pd=findIdol(pendingBias).idol; const pa=avatarBG(pd);
+      b.innerHTML=`
+        <div class="bias-hero">
+          <div class="bphoto" style="${pa.bg}">${pa.txt}</div>
+          <div class="bnm">${pd.nm}</div>
+          <div class="bgp">${pd.gp}</div>
+          <div class="brow"><span class="pillinfo">🎂 ${pd.bday}</span><span class="pillinfo">🏆 ${rankOf(pd.id)}</span></div>
+          <div style="font-size:12px;opacity:.95;margin-top:10px;line-height:1.5">${pd.bio}</div>
+        </div>
+        <button class="cta" id="confirmBias">${pd.nm} 내 최애로 선택! 💗</button>
+        <button class="bbtn wide" id="researchBtn">🔍 다시 검색하기</button>`;
+      $('#confirmBias').onclick=()=>{myBias=pendingBias;pendingBias=null;biasSearching=false;buildBias();updateMe();toast(`${findIdol(myBias).idol.nm} 최애 설정 완료 💗`);};
+      $('#researchBtn').onclick=()=>{pendingBias=null;biasSearching=true;buildBias();};
       return;
     }
     const d=findIdol(myBias).idol;
@@ -823,7 +841,7 @@
         <div class="brow"><span class="pillinfo">🎂 ${d.bday}</span><span class="pillinfo">🏆 ${rankOf(d.id)}</span><span class="pillinfo">💗 내 표 ${fmt(myVotes[d.id]||0)}</span></div>
         <div style="font-size:12px;opacity:.95;margin-top:10px;line-height:1.5">${d.bio}</div>
         <div class="bbtns">
-          <button class="bbtn outline" id="changeBtn">최애 변경</button>
+          <button class="bbtn outline" id="researchBtn">🔍 다시 검색하기</button>
         </div>
         <input type="file" id="photoInput" accept="image/*" style="display:none" />
       </div>
@@ -834,7 +852,7 @@
         <div class="fp-note">제출하신 사진은 <b>관리자 승인 후 공개</b>돼요. <b>직접 촬영했거나 저작권 문제가 없는 사진</b>만 올려주세요. 부적절한 사진은 비공개 처리됩니다.</div>
       </div>
 
-      <button class="cta" id="goVote">${findIdol(d.id).round}월 라운드에서 ${d.nm} 응원하기</button>`;
+      <button class="cta" id="goVote">${d.nm} 응원하러 가기 →</button>`;
     function renderFanStrip(){
       const strip=$('#fpStrip');if(!strip)return;
       const subs=fanPhotos[d.id]||[];
@@ -865,7 +883,7 @@
         const url=URL.createObjectURL(f);(fanPhotos[d.id]=fanPhotos[d.id]||[]).push(url);STATE[d.id].photo=url;buildBias();updateMe();toast('사진 제출 (데모: 즉시 반영)');
       }
     };
-    $('#changeBtn').onclick=()=>{myBias=null;buildBias();};
+    $('#researchBtn').onclick=()=>{biasSearching=true;pendingBias=null;buildBias();};
     $('#goVote').onclick=()=>{const f=findIdol(myBias);activeGender=f.idol.gender;const m=f.round;if(FINAL_MONTHS.includes(m)){stage='final';active=m;}else if(PRELIM_MONTHS.includes(m)){stage='prelim';active=m;}buildStageTabs();buildTabs();buildGenderToggle();buildRoundHead();buildList();go('rank');setTimeout(()=>openVote(myBias),250);};
   }
 
