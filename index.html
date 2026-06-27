@@ -518,7 +518,7 @@
     // 팬 사진: Storage 업로드 + 승인 대기 기록
     const storage=getStorage(app);
     const ADMIN_EMAILS=['seungju613@gmail.com'];  // 이메일 주는 계정(구글)
-    const ADMIN_UIDS=[];  // 이메일 없는 계정(카카오) — 로그인 후 UID 추가
+    const ADMIN_UIDS=['pSmg1wwamygIfkcPtMplbUtKV6X2'];  // 이메일 없는 계정(카카오) 관리자 UID
     window.fbIsAdmin=()=> !!currentUser && (
       ADMIN_EMAILS.includes((currentUser.email||'').toLowerCase())
       || ADMIN_UIDS.includes(currentUser.uid)
