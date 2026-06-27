@@ -284,6 +284,14 @@
   .fp-thumb.on{border-color:var(--pink);}
   .fp-note{font-size:10.5px;color:var(--mute);line-height:1.6;margin-top:10px;}
   .fp-note b{color:var(--pink-deep);}
+  .adm-list{display:flex;flex-direction:column;gap:10px;margin-top:6px;max-height:50vh;overflow-y:auto;}
+  .adm-card{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:13px;padding:8px;}
+  .adm-img{width:54px;height:54px;border-radius:10px;object-fit:cover;flex:none;background:var(--bg-soft);}
+  .adm-meta{flex:1;font-weight:800;font-size:13px;color:var(--ink);}
+  .adm-acts{display:flex;gap:6px;flex:none;}
+  .adm-acts button{border:0;border-radius:9px;padding:8px 11px;font-family:'Noto Sans KR';font-weight:800;font-size:12px;cursor:pointer;}
+  .adm-ok{background:var(--grad);color:#fff;}
+  .adm-no{background:var(--bg-soft);color:var(--mute);}
 
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
@@ -400,6 +408,7 @@
       <div class="card">
         <div class="menurow" id="menuAddIdol"><div class="mri">🔍</div><div class="mrt">내 가수 추가 · 정보 정정<small>찾는 가수가 없거나 틀린 정보가 있나요?</small></div><div class="mrgo">›</div></div>
         <div class="menurow" id="menuAdSubmit"><div class="mri">🖼️</div><div class="mrt">광고 시안 접수<small>1위 생일 광고 시안을 보내주세요</small></div><div class="mrgo">›</div></div>
+        <div class="menurow" id="menuPhotoAdmin" style="display:none"><div class="mri">🛠</div><div class="mrt">관리자 · 팬 사진 승인<small>대기 중인 제출 사진 검토</small></div><div class="mrgo">›</div></div>
       </div>
 
       <button class="cta ghost" id="logoutBtn">로그아웃</button>
@@ -461,7 +470,8 @@
 <!-- Firebase: 투표 저장·실시간 집계 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, increment, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, increment, onSnapshot, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-storage.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyA0INqoWE6Ae1SOkMxc2UBcQm7v4bAyv-c",
@@ -502,6 +512,27 @@
     // 픽 잔액: 계정(users/{uid})에 저장·복원
     window.fbGetBalance=async()=>{ if(!currentUser)return null; try{ const s=await getDoc(doc(db,'users',currentUser.uid)); return s.exists()?(s.data().balance??null):null; }catch(e){ console.error('잔액 불러오기 실패',e); return null; } };
     window.fbSetBalance=(n)=>{ if(!currentUser)return; setDoc(doc(db,'users',currentUser.uid),{balance:n},{merge:true}).catch(e=>console.error('잔액 저장 실패',e)); };
+    // 팬 사진: Storage 업로드 + 승인 대기 기록
+    const storage=getStorage(app);
+    const ADMIN_EMAILS=['seungju613@gmail.com'];  // 관리자 계정 (필요시 추가)
+    window.fbIsAdmin=()=> !!currentUser && ADMIN_EMAILS.includes((currentUser.email||'').toLowerCase());
+    window.fbUploadFanPhoto=async(idolId,file)=>{
+      if(!currentUser) throw new Error('login-required');
+      const r=storageRef(storage,`fan-photos/${idolId}/${Date.now()}_${currentUser.uid}.jpg`);
+      await uploadBytes(r,file);
+      const url=await getDownloadURL(r);
+      await addDoc(collection(db,'fanPhotos'),{idolId,url,uid:currentUser.uid,status:'pending',createdAt:serverTimestamp()});
+      return url;
+    };
+    window.fbGetApprovedPhotos=async(idolId)=>{   // idolId 단일 조건(복합 색인 불필요) → status는 코드에서 거름
+      const s=await getDocs(query(collection(db,'fanPhotos'),where('idolId','==',idolId)));
+      const out=[]; s.forEach(d=>{const v=d.data(); if(v.status==='approved')out.push({id:d.id,url:v.url});}); return out;
+    };
+    window.fbGetPendingPhotos=async()=>{
+      const s=await getDocs(query(collection(db,'fanPhotos'),where('status','==','pending')));
+      const out=[]; s.forEach(d=>out.push({id:d.id,...d.data()})); return out;
+    };
+    window.fbReviewPhoto=(docId,approve)=> updateDoc(doc(db,'fanPhotos',docId),{status:approve?'approved':'rejected'});
     window.fbReady=true;
     window.dispatchEvent(new Event('fb-ready'));
     console.log('[MYPICK] Firebase 연결됨');
@@ -798,7 +829,7 @@
       <div class="fan-photos">
         <div class="fp-head">📸 팬 제출 사진 <span>탭하면 대표 사진으로 바뀌어요</span></div>
         <div class="fp-strip" id="fpStrip"></div>
-        <div class="fp-note">팬들이 보내준 사진으로 대표 이미지가 업데이트돼요. 제출 사진은 <b>직접 촬영했거나 저작권 문제가 없는 사진</b>이어야 하며, 부적절한 사진은 관리자가 내릴 수 있어요.</div>
+        <div class="fp-note">제출하신 사진은 <b>관리자 승인 후 공개</b>돼요. <b>직접 촬영했거나 저작권 문제가 없는 사진</b>만 올려주세요. 부적절한 사진은 비공개 처리됩니다.</div>
       </div>
 
       <button class="cta" id="goVote">${findIdol(d.id).round}월 라운드에서 ${d.nm} 응원하기</button>`;
@@ -806,13 +837,32 @@
       const strip=$('#fpStrip');if(!strip)return;
       const subs=fanPhotos[d.id]||[];
       const add=`<button class="fp-add" id="fpAdd">＋<span>사진 제출</span></button>`;
-      const thumbs=subs.map((u,i)=>`<button class="fp-thumb ${STATE[d.id].photo===u?'on':''}" data-i="${i}"><img src="${u}" alt=""></button>`).join('');
+      const thumbs=subs.map((u)=>`<button class="fp-thumb ${STATE[d.id].photo===u?'on':''}" data-u="${u}"><img src="${u}" alt=""></button>`).join('');
       strip.innerHTML=add+thumbs;
       $('#fpAdd').onclick=()=>$('#photoInput').click();
-      strip.querySelectorAll('.fp-thumb').forEach(btn=>btn.onclick=()=>{STATE[d.id].photo=subs[+btn.dataset.i];buildBias();toast('대표 사진이 변경됐어요 💗');});
+      strip.querySelectorAll('.fp-thumb').forEach(btn=>btn.onclick=()=>{STATE[d.id].photo=btn.dataset.u;buildBias();toast('대표 사진이 변경됐어요 💗');});
     }
     renderFanStrip();
-    $('#photoInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);(fanPhotos[d.id]=fanPhotos[d.id]||[]).push(url);STATE[d.id].photo=url;buildBias();updateMe();toast('사진이 제출되어 대표로 설정됐어요 💗');};
+    // 승인된 팬 사진 불러오기 (배포 환경)
+    if(window.fbGetApprovedPhotos){
+      window.fbGetApprovedPhotos(d.id).then(list=>{
+        if(myBias!==d.id||!list.length)return;
+        fanPhotos[d.id]=list.map(x=>x.url);
+        if(!STATE[d.id]._fanRep){ STATE[d.id].photo=list[list.length-1].url; STATE[d.id]._fanRep=true; }
+        renderFanStrip();
+      }).catch(e=>console.error('승인 사진 로드 실패',e));
+    }
+    $('#photoInput').onchange=async e=>{
+      const f=e.target.files[0];if(!f)return; e.target.value='';
+      if(f.size>5*1024*1024){ toast('5MB 이하 사진만 올릴 수 있어요'); return; }
+      if(window.fbUploadFanPhoto){
+        toast('사진 업로드 중…');
+        try{ await window.fbUploadFanPhoto(d.id,f); toast('제출 완료! 관리자 승인 후 공개돼요 💗'); }
+        catch(err){ console.error(err); toast(err.message==='login-required'?'로그인 후 제출할 수 있어요':'업로드에 실패했어요'); }
+      } else {
+        const url=URL.createObjectURL(f);(fanPhotos[d.id]=fanPhotos[d.id]||[]).push(url);STATE[d.id].photo=url;buildBias();updateMe();toast('사진 제출 (데모: 즉시 반영)');
+      }
+    };
     $('#changeBtn').onclick=()=>{myBias=null;buildBias();};
     $('#goVote').onclick=()=>{const f=findIdol(myBias);activeGender=f.idol.gender;const m=f.round;if(FINAL_MONTHS.includes(m)){stage='final';active=m;}else if(PRELIM_MONTHS.includes(m)){stage='prelim';active=m;}buildStageTabs();buildTabs();buildGenderToggle();buildRoundHead();buildList();go('rank');setTimeout(()=>openVote(myBias),250);};
   }
@@ -959,6 +1009,7 @@
         const nm=user.displayName||(user.email?user.email.split('@')[0]:'');
         if(nm){ nickname=nm; const ni=$('#nickInput'); if(ni)ni.value=nickname; }
         if(ml)ml.textContent=(user.displayName?'구글':'이메일')+'로 로그인됨'+(user.email?' · '+user.email:'');
+        const pa=$('#menuPhotoAdmin'); if(pa)pa.style.display=(window.fbIsAdmin&&window.fbIsAdmin())?'flex':'none';
         enterApp();
         if(window.fbGetBalance){ window.fbGetBalance().then(b=>{ if(b!=null)balance=b; balanceReady=true; renderBalance(); updateMe(); }); }
         else updateMe();
@@ -1000,6 +1051,25 @@
       <p class="warn">• <b>깨짐 없는 고화질 파일</b>로 보내주세요(저화질·압축 손상 파일은 광고가 제대로 나오지 않아요).<br>• 시안의 디자인 요소가 <b>타인의 저작권을 침해하지 않도록</b> 주의해 주세요.<br>• <b>시안이 접수되지 않으면 광고가 정상적으로 진행되지 않습니다.</b></p>
       <a class="primary" href="mailto:mypick.ads@example.com?subject=%5B%EB%A7%88%EC%9D%B4%ED%94%BD%5D%20%EA%B4%91%EA%B3%A0%20%EC%8B%9C%EC%95%88%20%EC%A0%91%EC%88%98">메일로 시안 보내기 →</a>
       <p style="font-size:10.5px;color:var(--mute);text-align:center;margin-top:8px">＊ 이메일은 자리표시예요. 실제 운영 계정으로 교체 예정.</p>`);
+  };
+  // 관리자: 팬 사진 승인
+  const menuPhotoAdmin=$('#menuPhotoAdmin');
+  if(menuPhotoAdmin) menuPhotoAdmin.onclick=async()=>{
+    openInfo(`<h3>🛠 팬 사진 승인</h3><p id="admStatus">불러오는 중…</p><div id="admList" class="adm-list"></div>`);
+    if(!window.fbGetPendingPhotos){ $('#admStatus').textContent='관리자 기능은 배포 환경(깃허브)에서 작동해요.'; return; }
+    try{
+      const pend=await window.fbGetPendingPhotos();
+      $('#admStatus').textContent = pend.length ? `대기 중 ${pend.length}건 · 승인하면 모두에게 공개돼요` : '대기 중인 사진이 없어요 ✨';
+      const wrap=$('#admList'); if(!wrap)return; wrap.innerHTML='';
+      pend.forEach(p=>{
+        const nm=(STATE[p.idolId]&&STATE[p.idolId].nm)||p.idolId;
+        const card=document.createElement('div'); card.className='adm-card';
+        card.innerHTML=`<img class="adm-img" src="${p.url}" alt=""><div class="adm-meta">${nm}</div><div class="adm-acts"><button class="adm-ok">승인</button><button class="adm-no">거절</button></div>`;
+        card.querySelector('.adm-ok').onclick=async()=>{ try{ await window.fbReviewPhoto(p.id,true); card.remove(); toast('승인했어요 💗'); }catch(e){ toast('처리 실패'); } };
+        card.querySelector('.adm-no').onclick=async()=>{ try{ await window.fbReviewPhoto(p.id,false); card.remove(); toast('거절했어요'); }catch(e){ toast('처리 실패'); } };
+        wrap.appendChild(card);
+      });
+    }catch(e){ console.error(e); $('#admStatus').textContent='불러오기에 실패했어요'; }
   };
 
   // 데모 시작 득표(서버 데이터 쌓이기 전 보기 좋으라고). 실제 출시 땐 SEED_BASE=false로.
