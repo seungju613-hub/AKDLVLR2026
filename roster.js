@@ -78,7 +78,10 @@ window.ROSTER = [
   { id:"yena_solo",     name:"최예나", group:"솔로", gender:"female", birthMonth:9,  birthDay:29, bio:"", photo:"images/solo_yena.jpg", startVotes:0 },
   { id:"somi_solo",     name:"전소미", group:"솔로", gender:"female", birthMonth:3,  birthDay:9,  bio:"", photo:"images/solo_somi.jpg", startVotes:0 },
   { id:"changsub_solo", name:"이창섭", group:"솔로", gender:"male",   birthMonth:2,  birthDay:26, bio:"", photo:"images/solo_changsub.jpg", startVotes:0 },
-  { id:"taeyang_bb_solo",name:"태양",  group:"솔로", gender:"male",   birthMonth:5,  birthDay:18, bio:"前 빅뱅", photo:"images/solo_taeyang_bb.jpg", startVotes:0 }, // SF9 태양과 동명이인
+  /* 빅뱅 (보이즈) */
+  { id:"gdragon_bb",    name:"지드래곤", group:"빅뱅", gender:"male",   birthMonth:8,  birthDay:18, bio:"", photo:"images/bigbang_gdragon.jpg", startVotes:0 },
+  { id:"taeyang_bb_solo",name:"태양",   group:"빅뱅", gender:"male",   birthMonth:5,  birthDay:18, bio:"", photo:"images/solo_taeyang_bb.jpg", startVotes:0 },
+  { id:"daesung_bb",    name:"대성",   group:"빅뱅", gender:"male",   birthMonth:4,  birthDay:26, bio:"", photo:"images/bigbang_daesung.jpg", startVotes:0 },
   { id:"libwoo_solo",   name:"최립우", group:"솔로", gender:"male",   birthMonth:1,  birthDay:2,  bio:"보이즈2플래닛 출신", photo:"images/solo_libwoo.jpg", startVotes:0 }, // 생일 미확인
   { id:"heeseung_solo", name:"희승",   group:"솔로", gender:"male",   birthMonth:10, birthDay:15, bio:"前 엔하이픈", photo:"images/solo_heeseung.jpg", startVotes:0 },
 
